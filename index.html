@@ -1,36 +1,35 @@
 require('dotenv').config();
 const { Telegraf } = require('telegraf');
 
-// 1. Tvoya nov token ot BotFather
+// 1. Твоят токен
 const bot = new Telegraf('9089352268:AAHc7zTEUTPxOvYoey01ovhB13s3ZukcDD8');
 
-// 2. Link kum krasiva vizualna snimka/banner na uslugite
+// 2. Линк към красивата рекламна снимка
 const promoPhotoUrl = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop';
 
-// 3. Zhelezen cenorazpis i opisanie
+// 3. Железният ценоразпис
 const promoText = `
-💣 ZHELEZEN CENORASPIZ NA RED SOFTWARE ENGINEERING — BEZ FILTUR, BEZ IZLISHNI PRIKAZKI!
+💣 ЖЕЛЕЗЕН ЦЕНОРАЗПИС НА RED SOFTWARE ENGINEERING — БЕЗ ФИЛТЪР, БЕЗ ИЗЛИШНИ ПРИКАЗКИ!
 
-⚡ PAKET "WEB SAYT I SOFTUERNIE PRILOZHENiYA" — 50 EUR
-• Uvelichena mosht: Poluchavash perfekten websayt i avtorski softuerni prilozhenia na borda!
-• Uslovia: Plashash 50 evro ednorazno — survurut ti izliza gore i raboti zavinagi na infrastrukturata na Render, bez dosadni mesechni taksi!
+⚡ ПАКЕТ "WEB SITE I SOFTUERNIE PRILOZHENIYA" — 50 EUR
+• Увеличена мощ: Получаваш перфектен уебсайт и авторски софтуерни приложения на борда!
+• Условия: Плащаш 50 евро еднократно — сървърът ти излиза горе и работи завинаги на инфраструктурата на Render, без досадни месечни такси!
 
-Oficialni linkove na mrezhata:
-🌐 Oficialen port: redsoftwareteam-oficial.onrender.com
-🛒 Marketpleys & Softueren centur: red-software-dashbord.onrender.com
+Официални линкове на мрежата:
+🌐 Официален порт: redsoftwareteam-oficial.onrender.com
+🛒 Маркетплейс & Софтуерен център: red-software-dashbord.onrender.com
 
-🚀 AVTOMATICHNI SPAM AGENTI I MASHINI ZA MAKSIMALEN OTUP
-(Genirat po 5000+ sigurni pokazvania i trafik za tvoya biznes v Gmail, Telegram i Facebook)
-• Malware-Spam Bot / Telegram Spamer: 30 EUR — Puskash zvyara v igrata i pompaneto na suobshenia zapochva vednaga!
-• Gmail Spamer & Ferma softuer: Brutalno direktno vlizane v poshtite.
-• Telegram / Facebook botove za dobaviane i grupa-spam: Pulen paket za pulna dominacia na pazara.
+🚀 АВТОМАТИЧНИ СПАМ АГЕНТИ И МАШИНИ ЗА МАКСИМАЛЕН ОТУП
+(Генерират по 5000+ сигурни показвания и трафик за твоя бизнес в Gmail, Telegram и Facebook)
+• Malware-Spam Bot / Telegram Спамер: 30 EUR — Пускаш звяра в играта и помпането на съобщения започва веднага!
+• Gmail Спамер & Ферма софтуер: Брутално директно влизане в пощите.
+• Telegram / Facebook ботове за добавяне и група-спам: Пълен пакет за пълна доминация на пазара.
 
-📞 DIREKTEN KONTAKT S RED SOFTWARE ENGINEERING
-📱 Telefon / Viber: +359 879 813928
-✉️ Imeyl za poruchki: gtupoto7@gmail.com
+📞 ДИРЕКТЕН КОНТАКТ С RED SOFTWARE ENGINEERING
+📱 Телефон / Viber: +359 879 813928
+✉️ Имейл за поръчки: gtupoto7@gmail.com
 `;
 
-// Spisuk s grupi po podrazbirane (mojesh da dobavish oshte po vsqko vreme)
 let targetGroups = [
     "@bulgaria_chat",
     "@auto_bulgaria_chat",
@@ -44,47 +43,67 @@ let totalSentAds = 0;
 let isCampaignRunning = false;
 let campaignInterval = null;
 
-// Intervut na puskanie: 2 puti na den = na vseki 12 chasa (v milisekundi)
+// Режим: 2 пъти на ден (на всеки 12 часа)
 const TWICE_A_DAY_INTERVAL = 12 * 60 * 60 * 1000;
 
 bot.start((ctx) => {
     adminChatId = ctx.chat.id;
     ctx.reply(`
-🔥 @bulider_fullstack_bot E AKTIVEN!
+🔥 @bulider_fullstack_bot Е АКТИВЕН!
 
-Rejmut e nastroen: Krasiva reklama (snimka + tekst) **TOCHNO 2 PUTI NA DEN** vuv vsichki dobaveni grupi!
-
-Komandi za upravlenie:
-/startads - Startira avtomatichnata kampania (2 puti na den)
-/stopads - Spira kampaniyata
-/addgroup <grupa> - Dobavya nova grupa v spisaka
-/listgroups - Pokazva aktivnite grupi
-/status - Statistika za izpratenite reklami
+Можеш да пращаш групите на куп с интервали след командата:
+/addgroup @grupa1 @grupa2 @grupa3
+/startads - Старт на кампанията (2 пъти на ден)
+/stopads - Спиране
+/listgroups - Преглед на групите
+/status - Статистика
     `);
 });
 
-bot.command('addgroup', (ctx) => {
-    const args = ctx.message.text.split(' ');
-    if (args.length < 2) {
-        return ctx.reply('⚠️ Vavedi grupata, naprimer: `/addgroup @bulgaria_chat`', { parse_mode: 'Markdown' });
+// УНИВЕРСАЛНО МАСОВО ДОБАВЯНЕ (хваща всички думи започващи с @ или - след командата)
+const handleGroupAddition = (ctx) => {
+    const text = ctx.message.text;
+    // Взимаме всичко след командата (/addgroup или /addgroups)
+    const rawArgs = text.replace(/^\/(addgroup|addgroups)\s*/i, '').trim();
+    
+    if (!rawArgs) {
+        return ctx.reply('⚠️ Моля въведи поне една група, например:\n`/addgroup @bulgaria_chat @auto_bulgaria_chat`', { parse_mode: 'Markdown' });
     }
-    const groupTarget = args[1];
-    if (!targetGroups.includes(groupTarget)) {
-        targetGroups.push(groupTarget);
-        ctx.reply(`✅ Dobavena grupa: ${groupTarget}\nObshto grupi v bazata: ${targetGroups.length}`);
-    } else {
-        ctx.reply(`ℹ️ Tazi grupa veche e v spisaka.`);
+
+    // Разделяме по интервали или нови редове
+    const groupsArray = rawArgs.split(/[\s\n]+/).filter(g => g.startsWith('@') || g.startsWith('-'));
+
+    if (groupsArray.length === 0) {
+        return ctx.reply('⚠️ Не са открити валидни групи (трябва да започват с @ или -).');
     }
-});
+
+    let addedCount = 0;
+    let existingCount = 0;
+
+    groupsArray.forEach(group => {
+        if (!targetGroups.includes(group)) {
+            targetGroups.push(group);
+            addedCount++;
+        } else {
+            existingCount++;
+        }
+    });
+
+    ctx.reply(`✅ Резултат от добавянето:\n- Успешно добавени нови: ${addedCount}\n- Вече съществуващи в списъка: ${existingCount}\n📊 Общо групи в базата: ${targetGroups.length}`);
+};
+
+// Закачаме и двете команди към една и съща мощна функция за масово четене
+bot.command('addgroup', handleGroupAddition);
+bot.command('addgroups', handleGroupAddition);
 
 bot.command('listgroups', (ctx) => {
-    if (targetGroups.length === 0) return ctx.reply('⚠️ Spisukyt s grupi e prazen.');
-    let msg = '📋 AKTIVNI REKLAMNI GRUPI:\n\n';
+    if (targetGroups.length === 0) return ctx.reply('⚠️ Списъкът с групи е празен.');
+    let msg = '📋 АКТИВНИ РЕКЛАМНИ ГРУПИ:\n\n';
     targetGroups.forEach((g, i) => msg += `${i + 1}. ${g}\n`);
     ctx.reply(msg);
 });
 
-// Osnovna funkciya za razprostranenie na snimka + opisanie
+// Функция за пращане (2 пъти на ден)
 const executeAdBroadcast = async () => {
     if (targetGroups.length === 0) return;
 
@@ -96,42 +115,39 @@ const executeAdBroadcast = async () => {
             });
             sentInThisCycle++;
             totalSentAds++;
-            await new Promise(r => setTimeout(r, 6000)); // pauza 6 sekundi mejdu grupite za sigurnost
+            await new Promise(r => setTimeout(r, 6000)); 
         } catch (error) {
-            console.error(`Greshka do ${target}:`, error.message);
+            console.error(`Грешка до ${target}:`, error.message);
         }
     }
 
     if (adminChatId) {
-        bot.telegram.sendMessage(adminChatId, `📊 [OTCHET 2 PUTI NA DEN]: Izpratena krasiva reklama s cenorazpis v ${sentInThisCycle} grupi. Obshto za perioda: ${totalSentAds}`);
+        bot.telegram.sendMessage(adminChatId, `📊 [ОТЧЕТ 2 ПЪТИ НА ДЕН]: Изпратена стилна реклама в ${sentInThisCycle} групи. Общо пратени: ${totalSentAds}`);
     }
 };
 
 bot.command('startads', (ctx) => {
-    if (isCampaignRunning) return ctx.reply('⚠️ Kampaniyata veche raboti!');
+    if (isCampaignRunning) return ctx.reply('⚠️ Кампанията вече работи!');
     isCampaignRunning = true;
-    ctx.reply('🚀 KAMPANIYATA STARTIRA! Bota shte pukva krasivata reklama tochno 2 puti na den (na vseki 12 chasa) vuv vsichki grupi.');
+    ctx.reply('🚀 КАМПАНИЯТА СТАРТИРА! Стилната реклама ще се върти точно 2 пъти на ден във всички добавени групи.');
     
-    // Puska vednaga pri start
     executeAdBroadcast();
-    
-    // Sled tova zavurtia intervala na vseki 12 chasa
     campaignInterval = setInterval(executeAdBroadcast, TWICE_A_DAY_INTERVAL);
 });
 
 bot.command('stopads', (ctx) => {
-    if (!isCampaignRunning) return ctx.reply('ℹ️ Kampaniyata ne e aktivna.');
+    if (!isCampaignRunning) return ctx.reply('ℹ️ Кампанията не е активна.');
     clearInterval(campaignInterval);
     isCampaignRunning = false;
-    ctx.reply('🛑 Kampaniyata e sprana uspeshno.');
+    ctx.reply('🛑 Кампанията е спряна.');
 });
 
 bot.command('status', (ctx) => {
-    ctx.reply(`📊 STATUS NA MASHINATA:\n- Raboti: ${isCampaignRunning ? 'DA (2 puti na den)' : 'NE'}\n- Broi grupi: ${targetGroups.length}\n- Izprateni reklami: ${totalSentAds}`);
+    ctx.reply(`📊 СТАТУС:\n- Работи: ${isCampaignRunning ? 'ДА (2 пъти на ден)' : 'НЕ'}\n- Общо групи: ${targetGroups.length}\n- Изпратени реклами: ${totalSentAds}`);
 });
 
 bot.launch();
-console.log('🤖 Bota raboti perfektno i e nastroen za 2 puti na den!');
+console.log('🤖 Ботът работи с масово приемане на групи и режим 2 пъти на ден!');
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
