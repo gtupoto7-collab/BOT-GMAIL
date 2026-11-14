@@ -1,10 +1,9 @@
 require('dotenv').config();
 const { Telegraf } = require('telegraf');
 
-// 1. Използваме токена за @broker_free_bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-// 2. Промоционален текст на кирилица
+// Promo tekst s ofertata i linkovete
 const promoText = `
 🔥 СПЕЦИАЛНА ОФЕРТА ОТ RED SOFTWARE TEAM 🔥
 
@@ -26,39 +25,76 @@ const promoText = `
 📞 Контакти: 0879 813 928 (Телефон / Viber / Telegram)
 `;
 
-let targetBusinessList = [
-    { email: "remonti.sofiya.bg@gmail.com", business: "Строителна бригада София" },
-    { email: "stroitelstvo.pernik@gmail.com", business: "Майстор ремонти Перник" },
-    { email: "carpenter.tutrakan.wood@gmail.com", business: "Дърводелски услуги Тутракан" }
+// Spisyk s ID-tata na targovcite / grupite v Bulgaria, v koito bota e admin ili ima pravo da pishe
+let targetGroups = [
+    // Primereni ID-ta na grupi (tuka sluzish istinskite chat ID-ta na grupite)
+    // -1001234567890,
+    // -1009876543210
 ];
 
-let adminChatId = null; 
+let adminChatId = null;
+let totalSentAds = 0;
 
 bot.start((ctx) => {
     adminChatId = ctx.chat.id;
-    ctx.reply('🚀 BROKERFREE_BOT (@broker_free_bot) е активен!\n\nКоманди:\n/status - Проверка на базата\n/promo - Преглед на промо текста\n/add <email> - Добавяне на нов клиент');
+    ctx.reply('🚀 TELEGRAM AD-BOT (@broker_free_bot) e aktiven!\n\nGotov za reklama v grupi.\nKomandi:\n/addgroup - Dobavjane na grupat v bazata (pishe se v samata grupa)\n/startads - Start na avtomatichnite postove\n/status - Statistika');
+});
+
+// Komanda za dobavjane na grupat, v koyato pishesh, v bazata danni
+bot.command('addgroup', (ctx) => {
+    const chatId = ctx.chat.id;
+    if (ctx.chat.type === 'private' ) {
+        return ctx.reply('⚠️ Taz komanda se izpolzva V T SAJTI/GRUPI, a ne v lichen chat!');
+    }
+    
+    if (!targetGroups.includes(chatId)) {
+        targetGroups.push(chatId);
+        ctx.reply(`✅ Tazi grupa (-100...) bepeshe dobavena v bazata za reklama! ID: ${chatId}`);
+    } else {
+        ctx.reply('ℹ️ Tazi grupa veche e v spisaka.');
+    }
+});
+
+// Funkcia za avtomatincho postvane v grupite
+const runAdCampaign = async () => {
+    if (targetGroups.length === 0) {
+        if (adminChatId) bot.telegram.sendMessage(adminChatId, '⚠️ Nema dobaveni grupi! Izpolzvay `/addgroup` v grupite, deto iskash reklama.');
+        return;
+    }
+
+    let sentCount = 0;
+    for (let groupId of targetGroups) {
+        try {
+            await bot.telegram.sendMessage(groupId, promoText, { parse_mode: 'Markdown' });
+            sentCount++;
+            totalSentAds++;
+            // Pauza mezhdu grupite za da nqma ban ot Telegram za spam
+            await new Promise(r => setTimeout(r, 4000));
+        } catch (error) {
+            console.error(`Greshka pri postvane v grupa ${groupId}:`, error.message);
+        }
+    }
+
+    // Otchet v tvoia lichen chat na vseki 10 minuti
+    if (adminChatId) {
+        bot.telegram.sendMessage(adminChatId, `📊 [OTCHET NA 10 MIN]: Uspešno pusnati reklami v ${sentCount} grupi. Obshto za denia: ${totalSentAds}`);
+    }
+};
+
+// Puskane na avtomatinia interval na vseki 10 minuti (10 * 60 * 1000)
+setInterval(runAdCampaign, 10 * 60 * 1000);
+
+bot.command('startads', (ctx) => {
+    ctx.reply('🚀 Reklamnata kampania v Telegram grupite startira!');
+    runAdCampaign();
 });
 
 bot.command('status', (ctx) => {
-    ctx.reply(`📊 СТАТУС:\n- Клиенти в списъка: ${targetBusinessList.length}`);
-});
-
-bot.command('promo', (ctx) => {
-    ctx.reply(promoText);
-});
-
-bot.command('add', (ctx) => {
-    const textArgs = ctx.message.text.split(' ');
-    if (textArgs.length < 2) {
-        return ctx.reply('⚠️ Въведете имейл, напр: `/add klient@gmail.com`', { parse_mode: 'Markdown' });
-    }
-    const newEmail = textArgs[1];
-    targetBusinessList.push({ email: newEmail, business: "Добавен ръчно" });
-    ctx.reply(`✅ Успешно добавен: ${newEmail}\nОбщо в списъка: ${targetBusinessList.length}`);
+    ctx.reply(`📊 STATISTIKA:\n- Obshto grupi v bazata: ${targetGroups.length}\n- Izprateni reklami: ${totalSentAds}`);
 });
 
 bot.launch();
-console.log('🤖 Telegram ботът @broker_free_bot стартира успешно без пощенски изисквания!');
+console.log('🤖 Telegram Ad Bot startira uspeshno!');
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
