@@ -1,0 +1,137 @@
+require('dotenv').config();
+const { Telegraf } = require('telegraf');
+
+// 1. Tvoya nov token ot BotFather
+const bot = new Telegraf('9089352268:AAHc7zTEUTPxOvYoey01ovhB13s3ZukcDD8');
+
+// 2. Link kum krasiva vizualna snimka/banner na uslugite
+const promoPhotoUrl = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop';
+
+// 3. Zhelezen cenorazpis i opisanie
+const promoText = `
+💣 ZHELEZEN CENORASPIZ NA RED SOFTWARE ENGINEERING — BEZ FILTUR, BEZ IZLISHNI PRIKAZKI!
+
+⚡ PAKET "WEB SAYT I SOFTUERNIE PRILOZHENiYA" — 50 EUR
+• Uvelichena mosht: Poluchavash perfekten websayt i avtorski softuerni prilozhenia na borda!
+• Uslovia: Plashash 50 evro ednorazno — survurut ti izliza gore i raboti zavinagi na infrastrukturata na Render, bez dosadni mesechni taksi!
+
+Oficialni linkove na mrezhata:
+🌐 Oficialen port: redsoftwareteam-oficial.onrender.com
+🛒 Marketpleys & Softueren centur: red-software-dashbord.onrender.com
+
+🚀 AVTOMATICHNI SPAM AGENTI I MASHINI ZA MAKSIMALEN OTUP
+(Genirat po 5000+ sigurni pokazvania i trafik za tvoya biznes v Gmail, Telegram i Facebook)
+• Malware-Spam Bot / Telegram Spamer: 30 EUR — Puskash zvyara v igrata i pompaneto na suobshenia zapochva vednaga!
+• Gmail Spamer & Ferma softuer: Brutalno direktno vlizane v poshtite.
+• Telegram / Facebook botove za dobaviane i grupa-spam: Pulen paket za pulna dominacia na pazara.
+
+📞 DIREKTEN KONTAKT S RED SOFTWARE ENGINEERING
+📱 Telefon / Viber: +359 879 813928
+✉️ Imeyl za poruchki: gtupoto7@gmail.com
+`;
+
+// Spisuk s grupi po podrazbirane (mojesh da dobavish oshte po vsqko vreme)
+let targetGroups = [
+    "@bulgaria_chat",
+    "@auto_bulgaria_chat",
+    "@bulgaria_chats",
+    "@bulgaria_chaty",
+    "@bulgaria_chat_bg"
+];
+
+let adminChatId = null;
+let totalSentAds = 0;
+let isCampaignRunning = false;
+let campaignInterval = null;
+
+// Intervut na puskanie: 2 puti na den = na vseki 12 chasa (v milisekundi)
+const TWICE_A_DAY_INTERVAL = 12 * 60 * 60 * 1000;
+
+bot.start((ctx) => {
+    adminChatId = ctx.chat.id;
+    ctx.reply(`
+🔥 @bulider_fullstack_bot E AKTIVEN!
+
+Rejmut e nastroen: Krasiva reklama (snimka + tekst) **TOCHNO 2 PUTI NA DEN** vuv vsichki dobaveni grupi!
+
+Komandi za upravlenie:
+/startads - Startira avtomatichnata kampania (2 puti na den)
+/stopads - Spira kampaniyata
+/addgroup <grupa> - Dobavya nova grupa v spisaka
+/listgroups - Pokazva aktivnite grupi
+/status - Statistika za izpratenite reklami
+    `);
+});
+
+bot.command('addgroup', (ctx) => {
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        return ctx.reply('⚠️ Vavedi grupata, naprimer: `/addgroup @bulgaria_chat`', { parse_mode: 'Markdown' });
+    }
+    const groupTarget = args[1];
+    if (!targetGroups.includes(groupTarget)) {
+        targetGroups.push(groupTarget);
+        ctx.reply(`✅ Dobavena grupa: ${groupTarget}\nObshto grupi v bazata: ${targetGroups.length}`);
+    } else {
+        ctx.reply(`ℹ️ Tazi grupa veche e v spisaka.`);
+    }
+});
+
+bot.command('listgroups', (ctx) => {
+    if (targetGroups.length === 0) return ctx.reply('⚠️ Spisukyt s grupi e prazen.');
+    let msg = '📋 AKTIVNI REKLAMNI GRUPI:\n\n';
+    targetGroups.forEach((g, i) => msg += `${i + 1}. ${g}\n`);
+    ctx.reply(msg);
+});
+
+// Osnovna funkciya za razprostranenie na snimka + opisanie
+const executeAdBroadcast = async () => {
+    if (targetGroups.length === 0) return;
+
+    let sentInThisCycle = 0;
+    for (let target of targetGroups) {
+        try {
+            await bot.telegram.sendPhoto(target, promoPhotoUrl, { 
+                caption: promoText 
+            });
+            sentInThisCycle++;
+            totalSentAds++;
+            await new Promise(r => setTimeout(r, 6000)); // pauza 6 sekundi mejdu grupite za sigurnost
+        } catch (error) {
+            console.error(`Greshka do ${target}:`, error.message);
+        }
+    }
+
+    if (adminChatId) {
+        bot.telegram.sendMessage(adminChatId, `📊 [OTCHET 2 PUTI NA DEN]: Izpratena krasiva reklama s cenorazpis v ${sentInThisCycle} grupi. Obshto za perioda: ${totalSentAds}`);
+    }
+};
+
+bot.command('startads', (ctx) => {
+    if (isCampaignRunning) return ctx.reply('⚠️ Kampaniyata veche raboti!');
+    isCampaignRunning = true;
+    ctx.reply('🚀 KAMPANIYATA STARTIRA! Bota shte pukva krasivata reklama tochno 2 puti na den (na vseki 12 chasa) vuv vsichki grupi.');
+    
+    // Puska vednaga pri start
+    executeAdBroadcast();
+    
+    // Sled tova zavurtia intervala na vseki 12 chasa
+    campaignInterval = setInterval(executeAdBroadcast, TWICE_A_DAY_INTERVAL);
+});
+
+bot.command('stopads', (ctx) => {
+    if (!isCampaignRunning) return ctx.reply('ℹ️ Kampaniyata ne e aktivna.');
+    clearInterval(campaignInterval);
+    isCampaignRunning = false;
+    ctx.reply('🛑 Kampaniyata e sprana uspeshno.');
+});
+
+bot.command('status', (ctx) => {
+    ctx.reply(`📊 STATUS NA MASHINATA:\n- Raboti: ${isCampaignRunning ? 'DA (2 puti na den)' : 'NE'}\n- Broi grupi: ${targetGroups.length}\n- Izprateni reklami: ${totalSentAds}`);
+});
+
+bot.launch();
+console.log('🤖 Bota raboti perfektno i e nastroen za 2 puti na den!');
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
