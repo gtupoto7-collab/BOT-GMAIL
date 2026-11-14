@@ -1,5 +1,5 @@
 {
-  "name": "bot-telegram",
+  "name": "bot-telegram-ads",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,4 +10,3 @@
     "dotenv": "^16.4.5"
   }
 }
-
