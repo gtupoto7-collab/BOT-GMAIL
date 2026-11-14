@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Telegraf } = require('telegraf');
+const { Telegraf, Markup } = require('telegraf');
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '9089352268:AAHc7zTEUTPxOvYoey01ovhB13s3ZukcDD8';
 const bot = new Telegraf(token);
@@ -55,8 +55,9 @@ let adsActive = false;
 let adsInterval = null;
 let totalSent = 0;
 
-// Рекламно съобщение и снимка
-const adCaption = `
+// Рекламни варианти за ротация (запазват на 100% оригиналното съдържание)
+const adCaptions = [
+`
 ⭐ **Рекламна Кампания (Бюджет: 3100 Stars в Telegram Ads):**
 Активно промотиране на главния бот @redsoftwarebot!
 
@@ -69,35 +70,75 @@ const adCaption = `
 🔗 **ПЛАТФОРМА 2:** https://redsoftwareteam-oficial.onrender.com
 📌 **ТВОЯТА ГРУПА:** https://t.me/+HTJNMe-pUEeZnMY0
 📞 **VIBER:** 0879 813 928
-`;
+`,
+`
+🔥 **Топ Оферта (Бюджет: 3100 Stars в Telegram Ads):**
+Разгърни бизнеса си с главния бот @redsoftwarebot!
+
+🌐 **Безсмъртни сайтове за 50 € & AI Системи**
+• 7 дни напълно безплатен тест
+• Плащаш 50 евро след теста през EasyPay
+• Вечен сървър без прекъсване!
+
+🔗 **ПЛАТФОРМА 1:** https://red-software-dashbord.onrender.com
+🔗 **ПЛАТФОРМА 2:** https://redsoftwareteam-oficial.onrender.com
+📌 **ТВОЯТА ГРУПА:** https://t.me/+HTJNMe-pUEeZnMY0
+📞 **VIBER:** 0879 813 928
+`,
+`
+🚀 **Специална Кампания (Бюджет: 3100 Stars в Telegram Ads):**
+Посети официалния бот @redsoftwarebot за максимални резултати!
+
+🌐 **Безсмъртни сайтове за 50 € & AI Системи**
+• 7 дни напълно безплатен тест
+• Плащаш 50 евро след теста през EasyPay
+• Вечен сървър без прекъсване!
+
+🔗 **ПЛАТФОРМА 1:** https://red-software-dashbord.onrender.com
+🔗 **ПЛАТФОРМА 2:** https://redsoftwareteam-oficial.onrender.com
+📌 **ТВОЯТА ГРУПА:** https://t.me/+HTJNMe-pUEeZnMY0
+📞 **VIBER:** 0879 813 928
+`
+];
 
 const adPhotoUrl = 'https://redsoftwareteam-oficial.onrender.com/assets/img/hero-img.png';
 
-// Функция за изпращане с опашка и пауза срещу бан/забиване
+// Интерактивни бутони под рекламата за висок CTR
+const inlineKeyboard = Markup.inlineKeyboard([
+  [Markup.button.url('🌐 Разгледай Платформата', 'https://redsoftwareteam-oficial.onrender.com')],
+  [Markup.button.url('📌 Твоята Група', 'https://t.me/+HTJNMe-pUEeZnMY0')],
+  [Markup.button.url('💬 Viber Контакт', 'viber://chat?number=+359879813928')]
+]);
+
+// Функция за изпращане с опашка, ротация и 5 секунди пауза
 async function sendAdsToAll() {
   if (!adsActive) return;
-  console.log('🚀 Стартиране на изпращането към всички групи...');
+  console.log('🚀 Стартиране на машинната кампания към групите...');
 
   for (let group of groups) {
     if (!adsActive) break;
     try {
+      // Избиране на случаен вариант на текста за anti-spam ротация
+      const randomCaption = adCaptions[Math.floor(Math.random() * adCaptions.length)];
+
       await bot.telegram.sendPhoto(group, adPhotoUrl, {
-        caption: adCaption,
-        parse_mode: 'Markdown'
+        caption: randomCaption,
+        parse_mode: 'Markdown',
+        ...inlineKeyboard
       });
       totalSent++;
       console.log(`[УСПЕХ] Рекламата е пратена в: ${group}`);
     } catch (err) {
       console.log(`[ГРЕШКА в ${group}]: ${err.message}`);
     }
-    // Пауза от 3 секунди между всяка група
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Перфектна пауза от 5 секунди между групите за стабилност
+    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 }
 
 // Telegram Команди
 bot.start((ctx) => {
-  ctx.reply('🤖 Ботът машина е на линия с всички групи! Използвай /startads за пускане, /status за проверка или /listgroups за списъка.');
+  ctx.reply('🤖 Ботът машина с 43 групи и интерактивни бутони е на линия! Използвай /startads за пускане, /status за проверка или /listgroups за списъка.');
 });
 
 bot.command('startads', (ctx) => {
@@ -105,11 +146,12 @@ bot.command('startads', (ctx) => {
     return ctx.reply('⚠️ Кампанията вече работи!');
   }
   adsActive = true;
-  ctx.reply(`🔥 КАМПАНИЯТА СТАРТИРА! Рекламата ще се върти в ${groups.length} групи точно 2 пъти на ден.`);
+  ctx.reply(`🔥 МАШИНАТА СТАРТИРА! Рекламата с ротация и бутони ще се върти в ${groups.length} групи точно 3 пъти на ден (на всеки 8 часа).`);
   
   sendAdsToAll();
-  // Интервал на всеки 12 часа
-  adsInterval = setInterval(sendAdsToAll, 12 * 60 * 60 * 1000);
+  
+  // Интервал на всеки 8 часа (8 * 60 * 60 * 1000 ms) за максимална ефективност
+  adsInterval = setInterval(sendAdsToAll, 8 * 60 * 60 * 1000);
 });
 
 bot.command('stopads', (ctx) => {
@@ -119,7 +161,7 @@ bot.command('stopads', (ctx) => {
 });
 
 bot.command('status', (ctx) => {
-  ctx.reply(`📊 Статус: ${adsActive ? '🟢 Работи' : '🔴 Спряна'}\n📦 Общо групи в базата: ${groups.length}\n📤 Изпратени реклами общо: ${totalSent}`);
+  ctx.reply(`📊 Статус: ${adsActive ? '🟢 Работи (Машина)' : '🔴 Спряна'}\n📦 Общо групи в базата: ${groups.length}\n📤 Изпратени реклами общо: ${totalSent}`);
 });
 
 bot.command('listgroups', (ctx) => {
@@ -143,9 +185,9 @@ bot.command('addgroup', (ctx) => {
   ctx.reply(`✅ Добавени ${added} нови групи! Общо групи: ${groups.length}`);
 });
 
-// Стартиране
+// Стартиране на бота
 bot.launch();
-console.log('🤖 Ботът машина с 43 групи стартира успешно!');
+console.log('🤖 Ботът машина с ротация и бутони стартира успешно!');
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
