@@ -1,5 +1,5 @@
 {
-  "name": "bot-gmail",
+  "name": "bot-telegram",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "telegraf": "^4.16.3",
-    "nodemailer": "^6.9.13",
     "dotenv": "^16.4.5"
   }
 }
+
